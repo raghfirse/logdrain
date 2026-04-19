@@ -4,68 +4,103 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
-	"time"
 )
 
-// Format controls how log lines are rendered.
+// Format controls output style.
 type Format int
 
 const (
-	FormatPretty Format = iota
-	FormatRaw
+	Raw    Format = iota // emit line as-is
+	Pretty               // human-friendly colored output
 )
 
-// Formatter writes formatted log entries to an output writer.
+// Formatter writes log lines to an io.Writer.
 type Formatter struct {
-	format Format
 	out    io.Writer
+	fmt    Format
+	color  bool
 }
 
-// New creates a Formatter writing to out with the given format.
-func New(out io.Writer, format Format) *Formatter {
-	return &Formatter{format: format, out: out}
+// New creates a Formatter writing to out.
+func New(out io.Writer, f Format, color bool) *Formatter {
+	return &Formatter{out: out, fmt: f, color: color}
 }
 
-// Write formats and writes a single log line, prefixed with the source name.
+// Write formats and writes a single log line from the named source.
 func (f *Formatter) Write(source, line string) error {
-	if f.format == FormatRaw {
-		_, err := fmt.Fprintf(f.out, "[%s] %s\n", source, line)
+	if f.fmt == Raw {
+		_, err := fmt.Fprintf(f.out, "%s\n", line)
 		return err
 	}
 	return f.writePretty(source, line)
 }
 
 func (f *Formatter) writePretty(source, line string) error {
-	var entry map[string]any
-	if err := json.Unmarshal([]byte(line), &entry); err != nil {
-		// Not valid JSON — fall back to raw.
-		_, err = fmt.Fprintf(f.out, "[%s] %s\n", source, line)
-		return err
+	var fields map[string]interface{}
+	if err := json.Unmarshal([]byte(line), &fields); err != nil {
+		// Not valid JSON — emit raw with source tag.
+		src := f.formatSource(source)
+		_, err2 := fmt.Fprintf(f.out, "%s %s\n", src, line)
+		return err2
 	}
 
-	level := strings.ToUpper(stringField(entry, "level", "INFO"))
-	msg := stringField(entry, "msg", stringField(entry, "message", line))
-	ts := stringField(entry, "time", stringField(entry, "timestamp", ""))
+	level := stringField(fields, "level", "lvl")
+	msg := stringField(fields, "message", "msg")
+	ts := stringField(fields, "time", "ts", "timestamp")
 
-	prefix := ""
+	var sb strings.Builder
+	sb.WriteString(f.formatSource(source))
 	if ts != "" {
-		if t, err := time.Parse(time.RFC3339, ts); err == nil {
-			prefix = t.Format("15:04:05") + " "
-		} else {
-			prefix = ts + " "
+		sb.WriteString(" " + f.maybeColor(colorGray, ts))
+	}
+	if level != "" {
+		sb.WriteString(" " + f.maybeColor(LevelColor(level), strings.ToUpper(level)))
+	}
+	if msg != "" {
+		sb.WriteString(" " + msg)
+	}
+
+	// Append remaining fields sorted.
+	skip := map[string]bool{"level": true, "lvl": true, "message": true, "msg": true, "time": true, "ts": true, "timestamp": true}
+	keys := make([]string, 0, len(fields))
+	for k := range fields {
+		if !skip[k] {
+			keys = append(keys, k)
 		}
 	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		sb.WriteString(fmt.Sprintf(" %s=%v", f.maybeColor(colorGray, k), fields[k]))
+	}
 
-	_, err := fmt.Fprintf(f.out, "%s[%s] %-5s %s\n", prefix, source, level, msg)
+	_, err := fmt.Fprintln(f.out, sb.String())
 	return err
 }
 
-func stringField(m map[string]any, key, fallback string) string {
-	if v, ok := m[key]; ok {
-		if s, ok := v.(string); ok {
-			return s
+func (f *Formatter) formatSource(source string) string {
+	tag := fmt.Sprintf("[%s]", source)
+	if f.color {
+		return Colorize(SourceColor(source), tag)
+	}
+	return tag
+}
+
+func (f *Formatter) maybeColor(color, text string) string {
+	if f.color {
+		return Colorize(color, text)
+	}
+	return text
+}
+
+func stringField(fields map[string]interface{}, keys ...string) string {
+	for _, k := range keys {
+		if v, ok := fields[k]; ok {
+			if s, ok := v.(string); ok {
+				return s
+			}
 		}
 	}
-	return fallback
+	return ""
 }
