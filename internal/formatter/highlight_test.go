@@ -39,6 +39,16 @@ func TestHighlightFields_CaseInsensitiveKey(t *testing.T) {
 	}
 }
 
+func TestHighlightFields_NonStringValue(t *testing.T) {
+	// Non-string field values should be left unmodified.
+	fields := map[string]interface{}{"count": 42}
+	highlights := []FieldHighlight{{Field: "count", Color: "\033[31m"}}
+	result := HighlightFields(fields, highlights)
+	if result["count"] != 42 {
+		t.Errorf("expected non-string value to be unchanged, got %v", result["count"])
+	}
+}
+
 func TestParseHighlightFlag_Valid(t *testing.T) {
 	hl := ParseHighlightFlag([]string{"level=red", "msg=cyan"})
 	if len(hl) != 2 {
