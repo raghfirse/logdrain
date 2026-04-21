@@ -1,0 +1,19 @@
+// Package formatter provides log line formatting, filtering, and transformation.
+//
+// # Grep
+//
+// The Grep filter matches log lines against a regular expression. It can
+// operate on the entire raw line or be scoped to specific JSON fields.
+//
+// # Flag syntax
+//
+//	--grep "pattern"               # match anywhere in the line
+//	--grep "pattern:field"         # match within a single JSON field
+//	--grep "pattern:field1,field2" # match within multiple JSON fields
+//
+// # Examples
+//
+//	--grep "timeout"               # any line containing "timeout"
+//	--grep "5[0-9]{2}:status"      # lines where status field is 5xx
+//	--grep "db.*error:msg,service" # lines where msg or service matches
+package formatter
