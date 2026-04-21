@@ -49,6 +49,21 @@ func TestHighlightFields_NonStringValue(t *testing.T) {
 	}
 }
 
+func TestHighlightFields_ResetCodeAppended(t *testing.T) {
+	// Ensure the ANSI reset code is appended after the colored value so
+	// subsequent output is not unintentionally colored.
+	fields := map[string]interface{}{"level": "info"}
+	highlights := []FieldHighlight{{Field: "level", Color: "\033[34m"}}
+	result := HighlightFields(fields, highlights)
+	val, ok := result["level"].(string)
+	if !ok {
+		t.Fatal("expected string value")
+	}
+	if !strings.Contains(val, "\033[0m") {
+		t.Errorf("expected ANSI reset code in value, got %q", val)
+	}
+}
+
 func TestParseHighlightFlag_Valid(t *testing.T) {
 	hl := ParseHighlightFlag([]string{"level=red", "msg=cyan"})
 	if len(hl) != 2 {
