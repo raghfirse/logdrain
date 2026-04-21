@@ -57,3 +57,13 @@ func TestLimitFlagValue_Type(t *testing.T) {
 		t.Errorf("expected \"int\", got %q", f.Type())
 	}
 }
+
+func TestLimitFlagValue_Set_LargeValue(t *testing.T) {
+	f := &LimitFlagValue{}
+	if err := f.Set("1000000"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if f.N != 1000000 {
+		t.Errorf("expected 1000000, got %d", f.N)
+	}
+}
