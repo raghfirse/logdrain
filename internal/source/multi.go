@@ -36,3 +36,30 @@ func Merge(ctx context.Context, sources []*Source) <-chan Entry {
 	}()
 	return out
 }
+
+// Filter returns a new channel containing only entries whose Source name
+// matches one of the provided names. If names is empty, all entries are
+// passed through. The returned channel is closed when in is closed.
+func Filter(ctx context.Context, in <-chan Entry, names ...string) <-chan Entry {
+	out := make(chan Entry)
+	allowed := make(map[string]struct{}, len(names))
+	for _, n := range names {
+		allowed[n] = struct{}{}
+	}
+	go func() {
+		defer close(out)
+		for entry := range in {
+			if len(allowed) > 0 {
+				if _, ok := allowed[entry.Source]; !ok {
+					continue
+				}
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case out <- entry:
+			}
+		}
+	}()
+	return out
+}
