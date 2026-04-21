@@ -14,6 +14,12 @@
 // AggregateFlagValue as a flag.Value implementation for use with the standard
 // flag or pflag packages.
 //
+// # Multiple Aggregations
+//
+// Multiple aggregations can be applied in a single pass by creating several
+// Aggregator instances and calling Add on each. The Report method returns
+// results sorted by field name for deterministic output.
+//
 // Example:
 //
 //	agg := formatter.NewAggregator("latency_ms", formatter.AggregateSum)
@@ -23,4 +29,11 @@
 //	for _, entry := range agg.Report() {
 //		fmt.Println(entry)
 //	}
+//
+// # CLI Flag Usage
+//
+// AggregateFlagValue can be registered with the standard flag package:
+//
+//	var agg formatter.AggregateFlagValue
+//	flag.Var(&agg, "aggregate", "field:mode to aggregate (e.g. latency_ms:sum)")
 package formatter
