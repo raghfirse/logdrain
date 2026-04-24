@@ -27,3 +27,13 @@ func (f *ContextFlag) Type() string {
 func (f *ContextFlag) Fields() []string {
 	return f.fields
 }
+
+// Contains reports whether the given field name is present in the context fields.
+func (f *ContextFlag) Contains(field string) bool {
+	for _, v := range f.fields {
+		if v == field {
+			return true
+		}
+	}
+	return false
+}
