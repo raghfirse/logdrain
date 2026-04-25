@@ -91,3 +91,25 @@ func TestParseLimitFlag_Invalid(t *testing.T) {
 		}
 	}
 }
+
+// TestLimiter_ResetMultipleTimes verifies that a limiter can be reset and reused
+// repeatedly, each time allowing exactly max lines through.
+func TestLimiter_ResetMultipleTimes(t *testing.T) {
+	const max = 2
+	l, _ := NewLimiter(max)
+	line := `{"msg":"test"}`
+
+	for cycle := 0; cycle < 3; cycle++ {
+		for i := 0; i < max; i++ {
+			_, done := l.Apply(line)
+			if done {
+				t.Fatalf("cycle %d: expected done=false at i=%d", cycle, i)
+			}
+		}
+		_, done := l.Apply(line)
+		if !done {
+			t.Fatalf("cycle %d: expected done=true after limit", cycle)
+		}
+		l.Reset()
+	}
+}
