@@ -71,6 +71,16 @@ func TestSince_AliasTimestamp(t *testing.T) {
 	}
 }
 
+func TestSince_InvalidTimestampValuePassthrough(t *testing.T) {
+	s := NewSince(time.Now().Add(-10*time.Minute), "time")
+	// The "time" field is present but not a valid RFC3339 timestamp;
+	// the filter should pass the line through rather than drop it.
+	line := `{"time":"not-a-timestamp","message":"bad ts"}`
+	if got := s.Apply(line); got != line {
+		t.Errorf("expected unparseable timestamp passthrough, got %q", got)
+	}
+}
+
 func TestParseSinceFlag_Valid(t *testing.T) {
 	before := time.Now()
 	got, err := ParseSinceFlag("5m")
