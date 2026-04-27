@@ -68,3 +68,15 @@ func TestGrep_Match_MultipleFields(t *testing.T) {
 		t.Error("expected match when pattern in second field")
 	}
 }
+
+func TestGrep_Match_EmptyLine(t *testing.T) {
+	g, _ := NewGrep(`error`, nil)
+	if g.Match(``) {
+		t.Error("expected no match for empty line")
+	}
+
+	gWithFields, _ := NewGrep(`error`, []string{"msg"})
+	if gWithFields.Match(``) {
+		t.Error("expected no match for empty line with fields specified")
+	}
+}
