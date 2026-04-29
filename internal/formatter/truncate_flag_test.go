@@ -19,6 +19,19 @@ func TestTruncateFlag_Set_Invalid(t *testing.T) {
 	}
 }
 
+func TestTruncateFlag_Set_WithSuffix(t *testing.T) {
+	var f TruncateFlag
+	if err := f.Set("20:..."); err != nil {
+		t.Fatal(err)
+	}
+	if f.MaxLen != 20 {
+		t.Fatalf("expected MaxLen 20, got %d", f.MaxLen)
+	}
+	if f.Suffix != "..." {
+		t.Fatalf("expected suffix '...', got %q", f.Suffix)
+	}
+}
+
 func TestTruncateFlag_String_Default(t *testing.T) {
 	var f TruncateFlag
 	if f.String() != "0" {
